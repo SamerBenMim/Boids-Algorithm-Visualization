@@ -1,7 +1,6 @@
 package main
 
 import (
-	"log"
 	"math"
 	"math/rand"
 	"time"
@@ -21,7 +20,7 @@ func (b *Boid) start() {
 }
 
 func (b *Boid) calcAcceleration() Vector2d {
-	upper, lower := b.position.AddValue(viewRadius), b.position.SubstractValue(viewRadius)
+	upper, lower := b.position.AddValue(viewRadius), b.position.AddValue(-viewRadius)
 	avgPosition, avgVelocity, separation := Vector2d{0, 0}, Vector2d{0, 0}, Vector2d{0, 0}
 	count := 0.0
 	rWlock.RLock()
@@ -30,7 +29,7 @@ func (b *Boid) calcAcceleration() Vector2d {
 
 			if otherBoidId := boidMap[int(i)][int(j)]; otherBoidId != -1 && otherBoidId != b.id {
 
-				if dist := boids[otherBoidId].position.distance(boids[otherBoidId].position); dist < viewRadius {
+				if dist := boids[otherBoidId].position.distance(b.position); dist < viewRadius {
 
 					count++
 					avgVelocity = avgVelocity.Add(boids[otherBoidId].velocity)
@@ -42,16 +41,15 @@ func (b *Boid) calcAcceleration() Vector2d {
 	}
 	rWlock.RUnlock()
 	acc := Vector2d{b.borderBounce(b.position.x, screenWidth), b.borderBounce(b.position.y, screenHeight)}
-
 	if count > 0 {
-		avgVelocity = avgVelocity.DivideValue(count)
+		avgVelocity = avgVelocity.DivideValue(count).MultiplyValue(1.05)
+
 		avgPosition = avgPosition.DivideValue(count)
 		accCohesion := avgPosition.Substract(b.position).MultiplyValue(adjustmentRadius)
 		accSeparation := separation.MultiplyValue(adjustmentRadius)
 		accAlignement := avgVelocity.Substract(b.velocity).MultiplyValue(adjustmentRadius)
-		acc = acc.Add(accAlignement).Add(accCohesion)
-		log.Println(accSeparation)
-		//.Add(accSeparation)
+
+		acc = acc.Add(accAlignement).Add(accCohesion).Add(accSeparation)
 	}
 	return acc
 }
@@ -59,7 +57,7 @@ func (b *Boid) borderBounce(pos, maxBorder float64) float64 {
 	if pos < viewRadius {
 		return 1 / pos
 	} else if pos > maxBorder-viewRadius {
-		return 1 / float64(pos-maxBorder)
+		return 1 / (pos - maxBorder)
 	}
 	return 0
 }
@@ -70,23 +68,24 @@ func (b *Boid) moveOne() {
 	rWlock.Lock()
 	b.velocity = b.velocity.Add(acceleration).limit(-1, 1)
 	boidMap[int(b.position.x)][int(b.position.y)] = -1
+
 	b.position = b.position.Add(b.velocity)
 	boidMap[int(b.position.x)][int(b.position.y)] = b.id
 
-	next := b.position.Add(b.velocity)
-	if next.x >= screenWidth || next.x < 0 {
-		b.velocity = Vector2d{-b.velocity.x, b.velocity.y}
-	}
-	if next.y >= screenHeight || next.y < 0 {
-		b.velocity = Vector2d{b.velocity.x, -b.velocity.y}
-	}
+	// next := b.position.Add(b.velocity)
+	// if next.x >= screenWidth || next.x < 0 {
+	// 	b.velocity = Vector2d{-b.velocity.x, b.velocity.y}
+	// }
+	// if next.y >= screenHeight || next.y < 0 {
+	// 	b.velocity = Vector2d{b.velocity.x, -b.velocity.y}
+	// }
 	rWlock.Unlock()
 }
 
 func createBoid(id int) {
 	b := Boid{
 		position: Vector2d{rand.Float64() * screenWidth, rand.Float64() * screenHeight},
-		velocity: Vector2d{rand.Float64()*2 - 1, rand.Float64()*2 - 1},
+		velocity: Vector2d{1.5 * (rand.Float64()*2 - 1), 1.5 * (rand.Float64()*2 - 1)},
 		id:       id,
 	}
 	boids[id] = &b

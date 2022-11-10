@@ -10,7 +10,7 @@ func (v1 Vector2d) Add(v2 Vector2d) Vector2d {
 	return Vector2d{v1.x + v2.x, v1.y + v2.y}
 }
 func (v1 Vector2d) Substract(v2 Vector2d) Vector2d {
-	return Vector2d{v1.x - +v2.x, v1.y - v2.y}
+	return Vector2d{v1.x - v2.x, v1.y - v2.y}
 }
 func (v1 Vector2d) Multiply(v2 Vector2d) Vector2d {
 	return Vector2d{v1.x * v2.x, v1.y * v2.y}
